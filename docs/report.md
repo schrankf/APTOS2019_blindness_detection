@@ -1,7 +1,15 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
 # Machine Learning Engineer Nanodegree
 ## Capstone Project
-Joe Udacity  
-December 31st, 2050
+
+Felix Schrank
+
+October 12th, 2019
 
 ## I. Definition
 _(approx. 1-2 pages)_
@@ -10,6 +18,7 @@ _(approx. 1-2 pages)_
 In this section, look to provide a high-level overview of the project in layman’s terms. Questions to ask yourself when writing this section:
 - _Has an overview of the project been provided, such as the problem domain, project origin, and related datasets or input data?_
 - _Has enough background information been given so that an uninformed reader would understand the problem domain and following problem statement?_
+
 
 ### Problem Statement
 In this section, you will want to clearly define the problem that you are trying to solve, including the strategy (outline of tasks) you will use to achieve the desired solution. You should also thoroughly discuss what the intended solution will be for this problem. Questions to ask yourself when writing this section:
