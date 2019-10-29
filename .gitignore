@@ -1,3 +1,5 @@
 # ignore data files
 data/
+docs/fig/
 models/
+docs/.Rhistory

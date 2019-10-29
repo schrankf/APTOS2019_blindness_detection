@@ -44,7 +44,7 @@ The dataset is governed by real-world variations such as image and photo artifac
 
 ### Solution Statement
 
-A convolutional neural network will be trained to predict the severity level of diabetic retinopathy. For the training, I will split the provided train data set into train, validation, and test data (approx. 75%,10%, and 15%). After the model is trained, I will evaluate the model's performance using the test images (see later sections). I plan to train a pre-trained CNN (VGG16) using transfer learning. 
+A convolutional neural network will be trained to predict the severity level of diabetic retinopathy. For the training, I will split the provided train data set into train, validation, and test data (approx. 75%,10%, and 15%). After the model is trained, I will evaluate the model's performance using the test images (see later sections). I plan to train a pre-trained CNN (VGG16) using transfer learning.   
 
 ### Benchmark Model
 
@@ -71,8 +71,7 @@ In contrast, Recall gives you what proportion of actual positives was identified
 In this domain, recall is probably the most important one, as it is essential to detect many diseases as possible [4].
 
 
-
-### Project Design
+### Project Design  
 
 First, I will import and pre-process the image dataset. The images have to be resized,  rescaled to 4D (for Tensorflow), and normalized by 255 (RGB). Hereafter, I will split the dataset into a train, validation, and test set by 75%, 10%, and 15%, respectively. To increase the number of images and improve the performance of the model, I will try to implement data augmentation by creating a data generator. 
 
