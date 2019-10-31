@@ -44,12 +44,14 @@ To solve this multi-class classification problem, I used a pre-trained ResNet50 
 
 ### Metrics
 
-To evaluate the network's performance of this multi-class classification problem, I use the precision, recall, and cohen's kappa metric. For the provide definitions, I will use TP for true positives, FP for false positives, TN for true negatives, and FN for false negatives. Precision answers, what proportion of positive identifications are actually correct. It is defined as:
+To evaluate the network's performance of this multi-class classification problem, I use the precision, recall, and cohen's kappa metric. For the definitions below, I will use TP for true positives, FP for false positives, TN for true negatives, and FN for false negatives.
+
+Precision answers, what proportion of positive identifications are actually correct. It is defined as:
 \begin{equation}
 precision = \frac{TP}{TP + FP}
 \end{equation}
 
-In contrast, Recall gives you what proportion of actual positives was identified correctly by:
+Recall gives you what proportion of actual positives was identified correctly by:
 \begin{equation}
 recall = \frac{TP}{TP + FN}
 \end{equation}
@@ -228,17 +230,17 @@ I used three callback functions from Keras, which were applied during the traini
 ```python
 # checkpointer
 cb_checkpointer = ModelCheckpoint(filepath = 'models/model_resnet', 
-                                  save_weights_only =  False,
+                                  save_weights_only =  True,
                                   save_best_only = True,
                                   verbose = 1)
-# Early stopping
+# early stopping
 cb_earlystop = EarlyStopping(monitor = 'val_loss',
-                             patience = 10,
+                             patience = 15,
                              verbose = 1)
 
-# Learning rate reduction
+# learning rate reduction
 cb_learningrate = ReduceLROnPlateau(monitor = 'val_loss',
-                                    patience = 3,
+                                    patience = 5,
                                     factor = 0.1, 
                                     min_lr = 1e-6,
                                     verbose = 1)
@@ -279,6 +281,7 @@ I tried different top-layer architecture; however, it was hard to evaluate these
 I noticed the prominent effect by setting the `Dropout()` layers to 40% and changing the activation function in the fully connected `Dense()` layers to `relu`.
 I was surprised by how poor `adam` and `rmsProp` optimizers performed.  Using both, I actually never got the model to perform better than approximately  0.6 in terms of accuracy during training. Choosing `SGD` increased the model's performance significantly; this was quite a substantial performance boost. 
 Adding the `ReduceLROnPlateau()` as callback function also increased the performance compare to the initial results. 
+
 \pagebreak
 ## IV. Results
 
