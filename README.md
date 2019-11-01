@@ -12,4 +12,6 @@ pip install -r requirements.txt
 ```
 Code is embedded in the jupyter notebook `main.ipynb` .
 
+### License
+
 [MIT](https://choosealicense.com/licenses/mit/)
