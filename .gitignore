@@ -1,5 +1,4 @@
 # ignore data files
-data/
-docs/fig/
+data/train_images
 models/
 docs/.Rhistory

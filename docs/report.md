@@ -38,7 +38,7 @@ To solve this multi-class classification problem, I used a pre-trained ResNet50 
 
 \begin{figure}
 \centering
-\includegraphics[width=0.5\textwidth]{../data/train_images/0a61bddab956.png}
+\includegraphics[width=0.6\textwidth]{../data/train_images/0a61bddab956.png}
 \caption{Example of a fondus image from the dataset.}
 \end{figure}
 
@@ -84,7 +84,7 @@ If we look carefully, there are more distinct features visible in the more sever
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.8\textwidth]{fig/resolution.png}
+\includegraphics[width=0.85\textwidth]{fig/resolution.png}
 \caption{Distribution of the image sizes.}
 \end{figure}
 
@@ -100,13 +100,13 @@ Imbalanced data is usually critical for machine learning problems, e.g., as the 
   
 \begin{figure}[h]
 \centering
-\includegraphics[width=.7\textwidth]{fig/dist.png}
+\includegraphics[width=.8\textwidth]{fig/dist.png}
 \caption{Imbalanced class distribution.}
 \end{figure}
 
 ### Algorithms  and Techniques
 
-For this project, I used a deep convolutional neural network. Convolutional neural networks (CNN) have been widely used and proven to be highly successful in image classification and recognition problems [REF].
+For this project, I used a deep convolutional neural network. Convolutional neural networks (CNN) have been widely used and proven to be highly successful in image classification and recognition problems [7].
 
 A CNN takes images as input, applies filters to extract specific features, and uses a deep neural network (i.e., fully connected layers) to classify the images based on the derived features. Typically features are, e.g., boundaries, colors, shape, and so on. The output of the fully connected layers is usually probabilities for each class, while the maximum probability will be used as the predicted class, i.e., disease stage.  
 
@@ -118,14 +118,15 @@ This model will predict every image to be classified as class 0, i.e., no diabet
 
 | **Model** | **Average method** | **Precision** | **Recall** | **Cohens kappa** |
 |-------|---------:|:------:|:------------:|:-------:|
-| Naive class 0 | macro avg | 0.10 | 0.20 | 0.0 |
-| | weighted avg | 0.24 | 0.49 | 0.0 |
+| Naive class 0 | macro avg | 0.10 | 0.20 | |
+| | weighted avg | 0.24 | 0.49 | |
+| |  | | |  |
+| |  | | | 0.0 |
 Table: Results for the naive assumption.
 
-\pagebreak
 ## III. Methodology   
 
-Implementation was done using [sci-kit learn](https://scikit-learn.org/) (version 0.21.3) and [keras](https://keras.io/) (version 2.2.4).
+Implementation was done using [sci-kit learn](https://scikit-learn.org/) (version 0.21.3) and [keras](https://keras.io/) (version 2.2.4). Training was perfromed on a AWS EC2 instance and a Deep leanring AMI.
 
 ### Data Preprocessing
 First, I used sci-kit learn's `train_test_split()` function to randomly shuffle and divide the dataset into 2334 train, 916 test, and 412 validation images according to 65%, 25%, 15%, respectively. The function was called twice, first, to split the dataset for training and testing by 75% / 25%, and second to split the training set ones more for validation by 85% / 15%. In both calls, the option `shuffle` was set to `True` with a fixed seed given as `random_state` equal to 42:
@@ -151,12 +152,12 @@ train_generator = ImageDataGenerator(rescale = 1./255.,
                                      height_shift_range = 0.1,
                                      horizontal_flip = True)
 ```
-Hereafter, I use this generator to derive training and validation data generators using the `flow_from_dataframe()` method. This method takes the data frame `train` or `val`, comprising filenames (`x_col`) and labels (`y_col`), and the folder path, to generate batches of the size of 32 of the preprocessed and augmented data [REF]. It is worthwhile noting that the augmented data replacing the original data. The method also takes the new image size of 224 by 224, the color mode as RGB, and the corresponding classes:
+Hereafter, I use this generator to derive training and validation data generators using the `flow_from_dataframe()` method. This method takes the data frame `train` or `val`, comprising filenames (`x_col`) and labels (`y_col`), and the folder path, to generate batches of the size of 64 of the preprocessed and augmented data [REF]. It is worthwhile noting that the augmented data replacing the original data. The method also takes the new image size of 224 by 224, the color mode as RGB, and the corresponding classes:
 ```python
 # setup
 df_classes = ['0', '1', '2', '3', '4']
 img_rescale = (224, 224)
-batch_sz = 32
+batch_sz = 64
 
 # generator for train
 train_gen = train_generator.flow_from_dataframe(dataframe = train,
@@ -193,10 +194,14 @@ Examples of augmented images are given in figure 5.
 ### Implementation
 
 I used keras functional API to build the ResNet50 CNN. 
-The ResNet50 model was imported with pre-trained weights from ImageNet and without the top layers, i.e., the fully connected layers for classification. I added my own top layers by deep neural network comprising `GlobalAveragePooling2D()`, `BatchNormalization()`, `Dropout()`, and `Dense()` layers. The complete model takes images with a shape of `(224,224,3)` as input and outputs the probabilities for all five classes. I set all weights to trainable. Overall the model has 25,957,765 total parameters. 
+The ResNet50 model was imported with pre-trained weights from ImageNet and without the top layers, i.e., the fully connected layers for classification. I added my own top layers by deep neural network comprising `GlobalAveragePooling2D()`, `BatchNormalization()`, `Dropout()`, and `Dense()` layers. The complete model takes images with a shape of `(224,224,3)` as input and outputs the probabilities for all five classes. I set all weights to trainable. Overall the model has 28,843,909 total parameters. 
 ```python
-# construct pre-trained ResNet50 Model
-def get_resnet_model(img_shape, num_class): 
+# build pre-trained ResNet50 CNN
+from keras.applications.resnet50 import ResNet50
+from keras.models import Model
+from keras.layers import Input, GlobalAveragePooling2D, BatchNormalization, Dropout, Dense
+
+def get_resnet(img_shape, num_class): 
     input_img = Input(shape = img_shape)
     resnet50 = ResNet50(weights = 'imagenet', 
                         include_top = False, 
@@ -204,24 +209,28 @@ def get_resnet_model(img_shape, num_class):
     x = GlobalAveragePooling2D()(resnet50.output)
     x = BatchNormalization()(x)
     x = Dropout(0.4)(x)
-    x = Dense(1024, activation = 'relu')(x)
+    x = Dense(2048, activation = 'relu')(x)
     x = Dropout(0.4)(x)
-    x = Dense(256, activation = 'relu')(x)
+    x = Dense(512, activation = 'relu')(x)
     x = Dropout(0.4)(x)
     output = Dense(num_class, activation = 'softmax')(x)
     return Model(input_img, output)
-
-model_resnet = get_resnet_model((224,224,3), num_class = 5)
+# build model
+model_resnet = get_resnet((224,224,3), num_class = 5)
 # setup trainable layers
 for layers in model_resnet.layers:
     layers.trainable = True
 ```
-The model was compiled using the `compile()` method with categorical cross-entropy for the loss function, stochastic gradient descent (`SGD` as the optimizer, and accuracy as a metric for evaluation.  
+The model was compiled using the `compile()` method with categorical cross-entropy for the loss function, stochastic gradient descent (`SGD`) with Nesterov accelerated momentum as the optimizer, and accuracy as a metric for evaluation.  
 
 ```python 
+# compile the model
+sgd = optimizers.SGD(nesterov = True)
+adam = optimizers.Adam()
+
 # compile
 model_resnet.compile(loss = 'categorical_crossentropy', 
-                     optimizer = 'SGD',
+                     optimizer = sgd,
                      metrics = ['accuracy'])
 ```
 
@@ -235,12 +244,12 @@ cb_checkpointer = ModelCheckpoint(filepath = 'models/model_resnet',
                                   verbose = 1)
 # early stopping
 cb_earlystop = EarlyStopping(monitor = 'val_loss',
-                             patience = 15,
+                             patience = 12,
                              verbose = 1)
 
 # learning rate reduction
 cb_learningrate = ReduceLROnPlateau(monitor = 'val_loss',
-                                    patience = 5,
+                                    patience = 3,
                                     factor = 0.1, 
                                     min_lr = 1e-6,
                                     verbose = 1)
@@ -256,7 +265,9 @@ model_resnet.fit_generator(
             epochs = 40,
             validation_data = val_gen,
             validation_steps = len(val_gen.filenames) // val_gen.batch_size,
-            callbacks = [cb_checkpointer, cb_early_stop, cb_learning_rate]
+            callbacks = [cb_checkpointer, cb_early_stop, cb_learning_rate],
+            workers = 4, # 4 for EC2
+            use_multiprocessing = False)
             )
 ```
 
@@ -279,52 +290,58 @@ To improve the model's performance, I tried various adjustments.
 I realized that minor data augmentation works better, so I gradually decreased and removed parameters for the augmentation. 
 I tried different top-layer architecture; however, it was hard to evaluate these due to the high computational costs to train several different models.
 I noticed the prominent effect by setting the `Dropout()` layers to 40% and changing the activation function in the fully connected `Dense()` layers to `relu`.
-I was surprised by how poor `adam` and `rmsProp` optimizers performed.  Using both, I actually never got the model to perform better than approximately  0.6 in terms of accuracy during training. Choosing `SGD` increased the model's performance significantly; this was quite a substantial performance boost. 
+I was surprised by how poor `adam` and `rmsProp` optimizers performed.  Using both, I actually never got the model to perform better than approximately  0.65 in terms of accuracy during training. Choosing `SGD` increased the model's performance significantly; this was quite a substantial performance boost. 
 Adding the `ReduceLROnPlateau()` as callback function also increased the performance compare to the initial results. 
 
 \pagebreak
 ## IV. Results
 
 ### Model Evaluation and Validation
-Figure 6 shows the training history with training and validation learning curves. We can see that the loss curves are decreasing, while accuracies are increasing — the training convergences. After epoch XX the early stopping callback interrupts the training.
+Figure 6 shows the training history with training and validation learning curves. We can see that the loss curves are decreasing, while accuracies are increasing — the training convergences. After 32 epochs the early stopping callback interrupts the training. Based on the learning curves I cannot see evidence of overfitting. 
 
 \begin{figure}[h]
 \centering
-\includegraphics[width= 0.8\textwidth]{fig/augmentation.png}
+\includegraphics[width= 1.\textwidth]{fig/learning.png}
 \caption{Learning curves for training and validation.}
 \end{figure}
 
-The final CNN model achieved quite promising results on the yet unseen testing data. The results for the test dataset are given in table 2.
+The final CNN model achieved quite good results on the yet unseen testing data. The results for the test dataset are given in table 2.
 
 
-| **Model** | **Class / Average** | **Support** |**Precision** | **Recall** | **Cohens kappa** |
+| **Model** | **Class / Average** | **Support** |**Precision** | **Recall ** | **Cohens kappa** |
 |-------|:---------|:----:|:------:|:------------:|:-------:|
-|  Final CNN | 0 - No DR | 450 |0.10 | 0.20 | |
-|  | 1 - Mild | 81 |0.10 | 0.20 |  |
-|  | 2 - Moderate | 257 |0.10 | 0.20 |  |
-|  | 3 - Severe | 44 |0.10 | 0.20 | |
-|  | 4 - Proliferative DR | 84 |0.10 | 0.20 | |
+|  Final CNN | 0 - No DR | 450 |0.93 | 0.98 | |
+|  | 1 - Mild | 81 |0.58 | 0.57 |  |
+|  | 2 - Moderate | 257 |0.74 | 0.75 |  |
+|  | 3 - Severe | 44 |0.28 | 0.30 |  |
+|  | 4 - Proliferative DR | 84 |0.59 | 0.39 | |
 |  |  | |  | |
-|  | Macro | 916 |0.10 | 0.20 | 0.0  |
-|  | Weighted | 916 |0.10 | 0.20 | 0.0 |
+|  | Macro | 916 |0.63| 0.60 |   |
+|  | Weighted | 916 |0.78 | 0.79 | |
+|  |  | | | | |
+|  |  | 916 | | | 0.86 |
 Table: Results for the final CNN model on the unseen test data.
 
 If we look carefully at the evaluation metrics given in table 2, we can see that the imbalanced of the data greatly affects the results. For example, the model achieved a precision of 0.94 for the largest group class 0 with a support of 450, while the smallest group class 5  with a support of 44 achieved only 0.32. 
 
-The accuracy is comparable to the value during training with XX and XX, respectively. The final model seems to generalize well. Given these results, I consider this model and the parameter as appropriate. 
+The accuracy is comparable to the value during training with 0.79 and 0.84, respectively. The final model seems to generalize well. Given these results, I consider this model and the parameter as appropriate. 
 
 ### Justification
 Table 3 compares both models, the naive assumption predicting every image to be class 0 (i.e., no DR), and the final CNN model. 
 
 | **Model** | **Average method** | **Precision** | **Recall** | **Cohens kappa** |
 |-------|---------:|:------:|:------------:|:-------:|
-| Naive class 0 | Macro | 0.10 | 0.20 | 0.0 |
-|  | Weighted | 0.24 | 0.49 | 0.0 |
-| Final CNN | Macro | 0.10 | 0.20 | 0.0 |
-|  | Weighted | 0.24 | 0.49 | 0.0 |
-Table: Model comparison.
+| Naive class 0 | Macro | 0.10 | 0.20 | |
+|  | Weighted | 0.24 | 0.49 | |
+|  | | | | 0.0 |
+|  | | | |  |
+| Final CNN | Macro | 0.63 | 0.60 | |
+|  | Weighted | 0.78 | 0.79 | |
+|  | | | | 0.86 |
+Table: Model comparison of the naive and final CNN model.
 
-While the CNN model outperforms the naive model to solve the problem truly, I need more data. In particular, more data is necessary regarding higher disease stages, like class 4 and 5. 
+The final CNN model outperforms the naive model by far. In particular, the critical macro averaged scores are way higher with 0.1 to 0.63 and 0.2 to 0.60 for precision and recall, respectively. Furthermore, Cohens kappa increased by zero to 0.86. 
+However, to solve the problem fairly, I need more data. In particular, more data is necessary regarding higher disease stages, like class 4 and 5 (see section above and the imbalanced supports). 
 
 \pagebreak
 ## V. Conclusion
@@ -346,7 +363,7 @@ This project aimed to classify fondus images with respect to the severity of dia
 
 1. I downloaded the image dataset from [kaggle](https://www.kaggle.com/c/aptos2019-blindness-detection/data).
 2. The label file containing all filenames and their labels was imported.
-3.  Explorative data analysis was performed, obtaining different image sizes, shapes, and imbalanced class distribution.
+3. Explorative data analysis was performed, obtaining different image sizes, shapes, and imbalanced class distribution.
 4. I divided the images into train, test, and validation datasets.
 5. A train and validation data generator was created, which handles image rescaling, normalization, and augmentation. 
 6. A Benchmark model was created (naive assumption)
@@ -355,10 +372,10 @@ This project aimed to classify fondus images with respect to the severity of dia
 9. Model's performance was evaluated
 
 Step 5 was a great moment. I realized that I couldn't load every image into memory and store it because my computer ran out of memory, and the python kernel crashed. Finally, I found the solution of using the `flow_from_dataframe()` method from `ImageDataGenerator` to import my images in batches during training.
-Another great moment happened during step 7. In the first trails, I used the `adam` optimizer however, couldn't get any good results during training. Only when I changed to `SGD`, the training worked well and provided a significant performance boost. 
+Another great moment happened during step 7. In the first trails, I used the `adam` optimizer however, I couldn't get any good results during training. Only when I changed to `SGD` the training worked well and provided a significant performance boost. Furthermore, during the final training time, I finally managed to run the training on an AWS EC2 instance using the GPU. The performance boost was huge!
 
 ### Improvement
-I think the given provided solution is decent and good; however, it can be improved. If we look carefully at the leaderboard on kaggle, the top-ranked notebooks use more elaborate image pre-processing. They adjust the color channels to highlight specific features, that may lead to an improved solution. Most of the techniques are implemented using fastai or PyTorch, while in this project, I wanted to focus on keras. I'm also sure one can increase the complexity of the CNN to achieve better results. However, this will also increase the computational coast. In my case, without a GPU available, I think I went fine with my model.
+I think the given provided solution is decent and good; however, it can be improved. If we look carefully at the leaderboard on kaggle, the top-ranked notebooks use more elaborate image pre-processing. They adjust the color channels to highlight specific features, that may lead to an improved solution. Most of the techniques are implemented using fastai or PyTorch, while in this project, I wanted to focus on keras. Maybe one can increase the complexity of the CNN to achieve better results. However, this will also increase the computational coast.
 
 ### References
 
@@ -373,3 +390,5 @@ I think the given provided solution is decent and good; however, it can be impro
 [5] https://datascience.stackexchange.com/questions/40900/whats-the-difference-between-sklearn-f1-score-micro-and-weighted-for-a-mult
 
 [6] https://stats.stackexchange.com/questions/82162/cohens-kappa-in-plain-english
+
+[7] http://cs231n.github.io/convolutional-networks/#pool
