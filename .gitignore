@@ -1,4 +1,5 @@
 # ignore data files
+.ipynb_checkpoints
 data/train_images
 models/
 docs/.Rhistory
